@@ -1,4 +1,4 @@
-import frida, sys, time, argparse, re
+import frida, sys, time, argparse, re, os
 from utils import on_message
 
 class keyvalue(argparse.Action):
@@ -21,7 +21,7 @@ if __name__ == '__main__':
 
     jscode = 'Java.perform(function () {\n'
     for js in args.js:
-        with open(js, 'r') as f:
+        with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'javascript', js), 'r') as f:
             code = f.read()
             if args.extras:
                 for k, v in args.extras.items():
