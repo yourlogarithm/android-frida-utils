@@ -19,7 +19,7 @@ def get_arguments():
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(help='Action', dest='action')
 
-    setup_parser = subparsers.add_parser('setup', help='Setup frida android server on device',)
+    setup_parser = subparsers.add_parser('setup', help='Setup frida android server on device')
     setup_parser.add_argument('server', help='Frida server version')
 
     hook_parser = subparsers.add_parser('hook', help='Hook a package')
@@ -35,6 +35,8 @@ def get_arguments():
     full_parser.add_argument('pkg', type=str, help='Package name / activity to hook')
     full_parser.add_argument('--exportjs', '-ex', help='Export JS to file', action='store_true')
     full_parser.add_argument('-e', '--extras', help='Extra arguments to pass to the hooker', nargs='*', action=keyvalue)
+
+    interactive_parser = subparsers.add_parser('interactive', help='Interactive mode')
 
     args = parser.parse_args()
 
@@ -97,11 +99,62 @@ def hook(js_filenames, export_js, pkg, extras):
 def install(filename):
     subprocess.call(f'adb install -r {filename}', shell=True)
 
+def parse_extras(extras):
+    if not extras: return None
+    extras = extras.split(' ')
+    extras_dict = {}
+    for extra in extras:
+        for key, value in extra.split('='):
+            extras_dict[key] = value
+    return extras_dict
+
+
+def interactive_mode():
+    print('Frida Hooker Utility')
+    print('1. Express mode')
+    print('2. Setup Frida')
+    print('3. Start process and hook')
+    print('0. Exit')
+    choice = int(input('Enter a choice: '))
+
+    server, scripts, package = '', '', ''
+
+    must_setup_frida = choice == 1 or choice == 2
+    must_hook = choice == 1 or choice == 3
+    must_install_app = choice == 1
+
+    if must_setup_frida: 
+        server = input('Enter server version: ')
+    if must_hook:
+        scripts = input('Enter JS scripts separated with whitespace: ').split(' ')
+        export_js = input('Do you wish to export the script? [y/N]: ').lower() == 'n'
+        package = input('Enter package name of the app: ')
+        extras = parse_extras(input('Extras: '))
+    if must_install_app:
+        filename = input('APK filename: ')
+        
+
+    match choice:
+        case 1:
+            setup_wrapper(server)
+            time.sleep(1)
+            install(filename)
+            hook(scripts, export_js, package, extras)
+        case 2:
+            setup_wrapper(server)
+        case 3:
+            hook(scripts, export_js, package, extras)
+        case 0:
+            sys.exit(0)
+        case _:
+            print('Invalid choice')
 
 if __name__ == '__main__':
     args = get_arguments()
 
-    if args.action == 'setup':
+    if args.action == 'interactive':
+        interactive_mode()
+    elif args.action == 'setup':
         setup_wrapper(args.server)
     elif args.action == 'hook':
         hook(args.js, args.exportjs, args.pkg, args.extras)
@@ -110,3 +163,8 @@ if __name__ == '__main__':
         time.sleep(1)
         install(args.filename)
         hook(args.js, args.exportjs, args.pkg, args.extras)
+
+   
+
+
+    
