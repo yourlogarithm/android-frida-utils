@@ -11,7 +11,7 @@ if (target_class_name) {
     };
 } else {
     load.overload('java.lang.String').implementation = function (name) {
-        return this.load(name);
         console.log('loaded: ' + name);
+        return this.load(name);
     };
 }
