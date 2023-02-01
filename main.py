@@ -67,6 +67,7 @@ def setup_wrapper(server):
 def hook(js_filenames, export_js, pkg, extras):
     jscode = 'Java.perform(function () {\n'
     for js in js_filenames:
+        if not js.endswith('.js'): js += '.js'
         with open(os.path.join(SCRIPT_PATH, 'javascript', js), 'r') as f:
             code = f.read()
             if extras:
@@ -124,9 +125,9 @@ def interactive_mode():
     must_install_app = choice == 1
 
     if must_setup_frida: 
-        server = input('Enter server version: ')
+        server = input(f'Enter server version {os.listdir(os.path.join(SCRIPT_PATH, "servers"))}: ')
     if must_hook:
-        scripts = input('Enter JS scripts separated with whitespace: ').split(' ')
+        scripts = input(f'Enter JS scripts separated with whitespace {os.listdir(os.path.join(SCRIPT_PATH, "javascript"))}: ').split(' ')
         export_js = input('Do you wish to export the script? [y/N]: ').lower() == 'n'
         package = input('Enter package name of the app: ')
         extras = parse_extras(input('Extras: '))
