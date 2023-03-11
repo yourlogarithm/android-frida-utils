@@ -15,9 +15,26 @@ class keyvalue(argparse.Action):
             # assign into dictionary
             getattr(namespace, self.dest)[key] = value
 
+def get_js(js):
+    if not js.endswith('.js'): js += '.js'
+    filename = os.path.join(SCRIPT_PATH, 'javascript', js)
+    if os.path.exists(filename):
+        f = open(filename, 'r')
+    else:
+        f = open(js, 'r')
+    code = f.read()
+    f.close()
+    return code
+
+
 def get_arguments():
     parser = argparse.ArgumentParser()
+
     subparsers = parser.add_subparsers(help='Action', dest='action')
+
+    rpc = subparsers.add_parser('rpc', help='RPC manipulations')
+    rpc.add_argument('--list', '-l', help='List RPC methods', action='store_true')
+    rpc.add_argument('--print', '-p', help='Prints the javascript code of RPC')
 
     setup_parser = subparsers.add_parser('setup', help='Setup frida android server on device')
     setup_parser.add_argument('server', help='Frida server version')
@@ -36,7 +53,7 @@ def get_arguments():
     full_parser.add_argument('--exportjs', '-ex', help='Export JS to file', action='store_true')
     full_parser.add_argument('-e', '--extras', help='Extra arguments to pass to the hooker', nargs='*', action=keyvalue)
 
-    interactive_parser = subparsers.add_parser('interactive', help='Interactive mode')
+    subparsers.add_parser('interactive', help='Interactive mode')
 
     args = parser.parse_args()
 
@@ -67,14 +84,13 @@ def setup_wrapper(server):
 def hook(js_filenames, export_js, pkg, extras):
     jscode = 'Java.perform(function () {\n'
     for js in js_filenames:
-        if not js.endswith('.js'): js += '.js'
-        with open(os.path.join(SCRIPT_PATH, 'javascript', js), 'r') as f:
-            code = f.read()
-            if extras:
-                for k, v in extras.items():
-                    code = code.replace(f'__{k}__', v)
-            code = re.sub(r'\'__([a-z0-9]*_)*_\'', '\'\'', code)
-            jscode += code
+        code = get_js(js)
+        if extras:
+            for k, v in extras.items():
+                code = code.replace(f'__{k}__', v)
+        code = re.sub(r'\'__([a-z0-9]*_)*_\'', '\'\'', code)
+        jscode += code
+
     jscode += '});'
     
     if export_js:
@@ -159,6 +175,13 @@ if __name__ == '__main__':
         setup_wrapper(args.server)
     elif args.action == 'hook':
         hook(args.js, args.exportjs, args.pkg, args.extras)
+    elif args.action == 'rpc':
+        if args.list:
+            for filename in os.listdir(os.path.join(SCRIPT_PATH, 'javascript')):
+                print(filename)
+        elif args.print:
+            code = get_js(args.print)
+            print(code)
     else:
         setup_wrapper(args.server)
         time.sleep(1)
